@@ -16,7 +16,9 @@ package otelmux // import "go.opentelemetry.io/contrib/instrumentation/github.co
 
 import (
 	"fmt"
+	"github.com/go-kit/log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/felixge/httpsnoop"
@@ -38,6 +40,7 @@ const (
 // requests.  The service parameter should describe the name of the
 // (virtual) server handling the request.
 func Middleware(service string, opts ...Option) mux.MiddlewareFunc {
+
 	cfg := config{}
 	for _, opt := range opts {
 		opt.apply(&cfg)
@@ -66,6 +69,7 @@ func Middleware(service string, opts ...Option) mux.MiddlewareFunc {
 			publicEndpoint:    cfg.PublicEndpoint,
 			publicEndpointFn:  cfg.PublicEndpointFn,
 			filters:           cfg.Filters,
+			logger:            log.NewJSONLogger(os.Stdout),
 		}
 	}
 }
@@ -79,6 +83,7 @@ type traceware struct {
 	publicEndpoint    bool
 	publicEndpointFn  func(*http.Request) bool
 	filters           []Filter
+	logger            log.Logger
 }
 
 type recordingResponseWriter struct {
@@ -130,9 +135,11 @@ func defaultSpanNameFunc(routeName string, _ *http.Request) string { return rout
 // ServeHTTP implements the http.Handler interface. It does the actual
 // tracing of the request.
 func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tw.logger.Log("msg", "MALGAWA_TRACE: Request received in trace middleware", "request", r)
 	for _, f := range tw.filters {
 		if !f(r) {
 			// Simply pass through to the handler if a filter rejects the request
+			tw.logger.Log("msg", "MALGAWA_TRACE:  Request rejected by filter", "path", r.URL.Path, "method", r.Method, "remote_addr", r.RemoteAddr)
 			tw.handler.ServeHTTP(w, r)
 			return
 		}
@@ -174,6 +181,7 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	spanName := tw.spanNameFormatter(routeStr, r)
 	ctx, span := tw.tracer.Start(ctx, spanName, opts...)
 	defer span.End()
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span started with spanName %s", spanName))
 	r2 := r.WithContext(ctx)
 	rrw := getRRW(w)
 	defer putRRW(rrw)
