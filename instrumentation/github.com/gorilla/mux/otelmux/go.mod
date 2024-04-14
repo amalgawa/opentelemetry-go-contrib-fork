@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/felixge/httpsnoop v1.0.4
+	github.com/go-kit/log v0.2.1
 	github.com/gorilla/mux v1.8.1
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.21.0
@@ -12,6 +13,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
