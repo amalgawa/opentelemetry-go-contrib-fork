@@ -17,6 +17,9 @@ package b3 // import "go.opentelemetry.io/contrib/propagators/b3"
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/go-kit/log"
+	"os"
 	"strings"
 
 	"go.opentelemetry.io/otel/propagation"
@@ -145,7 +148,13 @@ func (b3 propagator) Extract(ctx context.Context, carrier propagation.TextMapCar
 		}
 		// The Single Header value was invalid, fallback to Multiple Header.
 	}
+	logger := log.NewJSONLogger(os.Stdout)
 
+	logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Extracting B3 headers %s %s",
+		carrier.Get(b3TraceIDHeader), carrier.Get(b3SampledHeader)))
+
+	logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Extracting B3 headers part 2 %s",
+		carrier))
 	var (
 		traceID      = carrier.Get(b3TraceIDHeader)
 		spanID       = carrier.Get(b3SpanIDHeader)
