@@ -24,7 +24,7 @@ import (
 	"github.com/felixge/httpsnoop"
 	"github.com/gorilla/mux"
 
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux/internal/semconvutil"
+	"github.com/amalgawa/opentelemetry-go-contrib-fork/instrumentation/github.com/gorilla/mux/otelmux/internal/semconvutil"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
