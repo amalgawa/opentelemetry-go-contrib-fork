@@ -181,13 +181,17 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	spanName := tw.spanNameFormatter(routeStr, r)
 	ctx, span := tw.tracer.Start(ctx, spanName, opts...)
 	defer span.End()
-	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span started with spanName %s", spanName))
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span started with spanName %s", span))
 	r2 := r.WithContext(ctx)
 	rrw := getRRW(w)
 	defer putRRW(rrw)
 	tw.handler.ServeHTTP(rrw.writer, r2)
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after ServeHTTP %s", span))
+
 	if rrw.status > 0 {
 		span.SetAttributes(semconv.HTTPStatusCode(rrw.status))
 	}
 	span.SetStatus(semconvutil.HTTPServerStatus(rrw.status))
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after SetStatus %s", span))
+
 }
