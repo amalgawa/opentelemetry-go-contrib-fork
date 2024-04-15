@@ -135,7 +135,7 @@ func defaultSpanNameFunc(routeName string, _ *http.Request) string { return rout
 // ServeHTTP implements the http.Handler interface. It does the actual
 // tracing of the request.
 func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tw.logger.Log("msg", "MALGAWA_TRACE: Request received in trace middleware", "request", r)
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Request received in trace middleware %s ", r))
 	for _, f := range tw.filters {
 		if !f(r) {
 			// Simply pass through to the handler if a filter rejects the request
@@ -158,11 +158,13 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Route received in trace middleware %s ", routeStr))
 
 	opts := []trace.SpanStartOption{
 		trace.WithAttributes(semconvutil.HTTPServerRequest(tw.service, r)...),
 		trace.WithSpanKind(trace.SpanKindServer),
 	}
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Opts received in trace middleware %s ", opts))
 
 	if tw.publicEndpoint || (tw.publicEndpointFn != nil && tw.publicEndpointFn(r.WithContext(ctx))) {
 		opts = append(opts, trace.WithNewRoot())
@@ -181,17 +183,17 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	spanName := tw.spanNameFormatter(routeStr, r)
 	ctx, span := tw.tracer.Start(ctx, spanName, opts...)
 	defer span.End()
-	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span started with spanName %s", span))
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span started with spanName %s and span %s", spanName, span))
 	r2 := r.WithContext(ctx)
 	rrw := getRRW(w)
 	defer putRRW(rrw)
 	tw.handler.ServeHTTP(rrw.writer, r2)
-	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after ServeHTTP %s", span))
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after ServeHTTP %s and span %s", spanName, span))
 
 	if rrw.status > 0 {
 		span.SetAttributes(semconv.HTTPStatusCode(rrw.status))
 	}
 	span.SetStatus(semconvutil.HTTPServerStatus(rrw.status))
-	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after SetStatus %s", span))
+	tw.logger.Log("msg", fmt.Sprintf("MALGAWA_TRACE: Span after SetStatus %s and span %s", spanName, span))
 
 }
